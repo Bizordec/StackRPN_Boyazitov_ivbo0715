@@ -11,8 +11,11 @@ d contains 7;
 
 while (a < b) {
 	a = a+3;
-	b = a - 4;
-	c = 4-a;
+	c = 15 - a;
+	while (a < c) {
+    	a = a+1;
+    }
+    b = a - 4;
 }
 
 w type set;

@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Stack;
 
 public class ToRPN {
-    private Stack<Token> operators = new Stack<>();
+    private static Stack<Token> operators = new Stack<>();
 
-    public List<Token> toRPN(List<Token> tokens) {
+    public static List<Token> toRPN(List<Token> tokens) {
         List<Token> output = new ArrayList<>();
 
         for (int i = 0; i < tokens.size(); i++) {
@@ -18,92 +18,16 @@ public class ToRPN {
                     i = rpn_assign_expr(i, tokens, output);
                     break;
                 case "VAR":
-                    output.add(tokens.get(i));
-                    label1:
-                    for (int set_i = i + 1; set_i < tokens.size(); set_i++) {
-                        switch (tokens.get(set_i).getType()) {
-                            case "TYPE":
-                                operators.push(tokens.get(set_i));
-                                break;
-                            case "VAR":
-                            case "NUM":
-                            case "SET":
-                                output.add(tokens.get(set_i));
-                                break;
-                            case "ADD":
-                            case "REMOVE":
-                            case "CONTAINS":
-                                operators.push(tokens.get(set_i));
-                                break;
-                            case "EOL":
-                                while (!operators.empty())
-                                    output.add(operators.pop());
-                                output.add(new Token("EOL", "EOL", 0));
-                                i = set_i;
-                                break label1;
-                        }
-                    }
+                    i = rpn_set_expr(i, tokens, output);
                     break;
                 case "WHILE":
-                    for (int condition_i = i + 1; condition_i < tokens.size(); condition_i++) {
-                        if (tokens.get(condition_i).getType().equals("VAR") ||
-                                tokens.get(condition_i).getType().equals("NUM") ||
-                                tokens.get(condition_i).getType().equals("LPAR")) {
-                            switch (tokens.get(condition_i).getType()) {
-                                case "VAR":
-                                case "NUM":
-                                    output.add(tokens.get(condition_i));
-                                    break;
-                                case "LPAR":
-                                    operators.push(tokens.get(condition_i));
-                                    break;
-                            }
-                        } else if (tokens.get(condition_i).getType().equals("RPAR")) {
-                            while (!operators.peek().getType().equals("LPAR"))
-                                output.add(operators.pop());
-                            output.add(new Token("p", "p1"));
-                            output.add(new Token("!F", "!F"));
-                            operators.pop();
-                            i = condition_i;
-                        } else if (tokens.get(condition_i).getType().equals("LBRACE")) {
-                            for (int sub_br = condition_i + 1; sub_br < tokens.size(); sub_br++) {
-                                if (tokens.get(sub_br).getType().equals("RBRACE")) {
-                                    output.add(new Token("END", "END"));
-                                    int endIndex = 0;
-                                    for (Token end : output) {
-                                        if (end.getType().equals("END")) {
-                                            endIndex = output.indexOf(end);
-                                            break;
-                                        }
-                                    }
-                                    for (Token end : output) {
-                                        if (end.getType().equals("p")) {
-                                            end.setValue(String.valueOf(endIndex));
-                                            break;
-                                        }
-                                    }
-                                    i = sub_br;
-                                } else {
-                                    sub_br = rpn_assign_expr(sub_br, tokens, output);
-                                    i = sub_br;
-                                    break;
-                                }
-                            }
-                            break;
-                        } else if (!operators.empty()) {
-                            while (tokens.get(condition_i).getPriority() <= operators.peek().getPriority())
-                                output.add(operators.pop());
-                            operators.push(tokens.get(condition_i));
-                        } else
-                            operators.push(tokens.get(condition_i));
-                    }
-                    break;
+                    i = rpn_while_expr(i, tokens, output);
             }
         }
         return output;
     }
 
-    private int rpn_assign_expr(int index, List<Token> tokens, List<Token> output) {
+    private static int rpn_assign_expr(int index, List<Token> tokens, List<Token> output) {
         int subEnd = 0;
         for (int sub_i = index; sub_i < tokens.size(); sub_i++) {
             if (tokens.get(sub_i).getType().equals("EOL")) {
@@ -112,6 +36,7 @@ public class ToRPN {
             }
         }
         List<Token> subList = tokens.subList(index, subEnd);
+        label:
         for (Token token : subList) {
             switch (token.getType()) {
                 case "VAR":
@@ -138,14 +63,101 @@ public class ToRPN {
                     else
                         operators.push(token);
                     break;
-            }
-            if (token.getType().equals("EOL")) {
-                while (!operators.empty())
-                    output.add(operators.pop());
-                output.add(new Token("EOL", "EOL", 0));
-                break;
+                case "EOL":
+                    while (!operators.empty())
+                        output.add(operators.pop());
+                    output.add(new Token("EOL", "EOL", 0));
+                    break label;
             }
         }
         return subEnd - 1;
+    }
+
+    private static int rpn_set_expr(int index, List<Token> tokens, List<Token> output) {
+        output.add(tokens.get(index));
+        label1:
+        for (int set_i = index + 1; set_i < tokens.size(); set_i++) {
+            switch (tokens.get(set_i).getType()) {
+                case "TYPE":
+                    operators.push(tokens.get(set_i));
+                    break;
+                case "VAR":
+                case "NUM":
+                case "SET":
+                    output.add(tokens.get(set_i));
+                    break;
+                case "ADD":
+                    operators.push(tokens.get(set_i));
+                    break;
+                case "REMOVE":
+                    operators.push(new Token("REMOVE", "rmv", 0));
+                    break;
+                case "CONTAINS":
+                    operators.push(new Token("CONTAINS", "cont", 0));
+                    break;
+                case "EOL":
+                    while (!operators.empty())
+                        output.add(operators.pop());
+                    output.add(new Token("EOL", "EOL", 0));
+                    index = set_i;
+                    break label1;
+            }
+        }
+        return index;
+    }
+
+    private static int rpn_while_expr(int index, List<Token> tokens, List<Token> output) {
+        int p0_index = 0;
+        int begin_index = 0;
+        label:
+        for (int condition_i = index + 1; condition_i < tokens.size(); condition_i++) {
+            switch (tokens.get(condition_i).getType()) {
+                case "LPAR":
+                    operators.push(tokens.get(condition_i));
+                    break;
+                case "VAR":
+                case "NUM":
+                    output.add(tokens.get(condition_i));
+                    break;
+                case "LOGOP":
+                    operators.push(tokens.get(condition_i));
+                    begin_index = output.size() - 1;
+                    break;
+                case "RPAR":
+                    while (!operators.peek().getType().equals("LPAR"))
+                        output.add(operators.pop());
+                    operators.pop();
+                    Token p0 = new Token("p", "p");
+                    output.add(p0);
+                    p0_index = output.lastIndexOf(p0);
+                    output.add(new Token("!F", "!F"));
+                    break;
+                case "LBRACE":
+                    label1:
+                    for (int body_i = condition_i + 1; body_i < tokens.size(); body_i++) {
+                        switch (tokens.get(body_i).getType()) {
+                            case "WHILE":
+                                body_i = rpn_while_expr(body_i, tokens, output);
+                                break;
+                            case "RBRACE":
+                                Token p1 = new Token("p", "p");
+                                output.add(p1);
+                                int p1_index = output.lastIndexOf(p1);
+                                output.get(p1_index).setValue(String.valueOf(begin_index));
+                                output.add(new Token("!", "!"));
+                                output.add(new Token("END", "END"));
+                                int end_index = output.size() - 1;
+                                output.get(p0_index).setValue(String.valueOf(end_index));
+                                index = body_i;
+                                break label1;
+                            default:
+                                body_i = rpn_assign_expr(body_i, tokens, output);
+                                break;
+                        }
+                    }
+                    break label;
+            }
+        }
+        return index;
     }
 }

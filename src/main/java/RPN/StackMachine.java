@@ -22,7 +22,7 @@ public class StackMachine {
     }
 
     public void calculate(List<Token> tokens) {
-        System.out.println("VAR and SET table:");
+        System.out.println("StackMachine:");
         stackCalculate(tokens);
 
         System.out.println();
@@ -37,7 +37,7 @@ public class StackMachine {
     }
 
     private void stackCalculate(List<Token> tokens) {
-
+        boolean conditionF;
         for (int i = 0; i < tokens.size(); i++) {
             switch (tokens.get(i).getType()) {
                 case "NUM":
@@ -72,11 +72,24 @@ public class StackMachine {
                 case "LOGOP":
                     String logOpValue = tokens.get(i).getValue();
                     boolean condition = logOp_rpn(getOperand(), getOperand(), logOpValue);
-                    for (Token tr_token: tokens) {
-                        if (tr_token.getType().equals("!F")) {
-                            tr_token.setValue(String.valueOf(condition));
+                    for (int f_i = i; f_i < tokens.size(); f_i++) {
+                        if (tokens.get(f_i).getType().equals("!F")) {
+                            tokens.get(f_i).setValue(String.valueOf(condition));
+                            System.out.println("!F = " + tokens.get(f_i).getValue());
                             break;
                         }
+                    }
+                    break;
+                case "p":
+                case "!":
+                    stack.push(tokens.get(i));
+                    break;
+                case "!F":
+                    stack.push(tokens.get(i));
+                    conditionF = Boolean.valueOf(stack.peek().getValue());
+                    if (!conditionF) {
+                        stack.pop();
+                        i = Integer.parseInt(stack.pop().getValue());
                     }
                     break;
                 case "LPAR":
@@ -90,7 +103,7 @@ public class StackMachine {
                     int value = Integer.parseInt(stack.pop().getValue());
                     String var = stack.pop().getValue();
                     varName.put(var, value);
-                    System.out.println(varName);
+                    System.out.println(var + "=" + varName.get(var));
                     break;
                 case "TYPE":
                     String type = tokens.get(i).getValue();
@@ -114,22 +127,9 @@ public class StackMachine {
                 case "EOL":
                     break;
                 case "END":
-                    int cycle_begin = 0;
-                    int cycle_end = 0;
-                    boolean conditionF = false;
-                    for (Token tr_token: tokens) {
-                        if (tr_token.getType().equals("p"))
-                            cycle_end = Integer.parseInt(tr_token.getValue());
-                        if (tr_token.getType().equals("!F")) {
-                            cycle_begin = tokens.indexOf(tr_token);
-                            conditionF = Boolean.getBoolean(tr_token.getValue());
-                            break;
-                        }
-                    }
-                    if (conditionF)
-                        stackCalculate(tokens.subList(cycle_begin, cycle_end));
-                    else
-                        break;
+                    stack.pop();
+                    i = Integer.parseInt(stack.pop().getValue()) - 1;
+                    break;
             }
         }
     }
@@ -138,16 +138,16 @@ public class StackMachine {
         switch (value) {
             case "add":
                 hashSet.add(b);
-                System.out.println("\"" + a + " " + value + " " + b + "\" -> " +
+                System.out.println("\"" + a + " add " + b + "\" -> " +
                         a + "=" + hashMap.get(a));
                 break;
-            case "remove":
+            case "rmv":
                 hashSet.remove(b);
-                System.out.println("\"" + a + " " + value + " " + b + "\" -> " +
+                System.out.println("\"" + a + " remove " + b + "\" -> " +
                         a + "=" + hashMap.get(a));
                 break;
-            case "contains":
-                System.out.println("\"" + a + " " + value + " " + b + "\" -> " +
+            case "cont":
+                System.out.println("\"" + a + " contains " + b + "\" -> " +
                         hashSet.contains(b));
                 break;
         }

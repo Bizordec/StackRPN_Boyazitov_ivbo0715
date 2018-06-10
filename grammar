@@ -4,7 +4,7 @@ while_expr -> condition body
 condition -> LPAR log_expr RPAR
 log_expr -> value LOGOP value
 body -> LBRACE body_expr RBRACE
-body_expr -> (assign_expr)*
+body_expr -> assign_expr* | while_expr*
 assign_expr -> VAR ASSIGN value_expr EOL
 value_expr -> value (OP value)* EOL
 value -> NUM | VAR

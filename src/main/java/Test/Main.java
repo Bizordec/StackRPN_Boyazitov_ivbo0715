@@ -18,11 +18,11 @@ public class Main {
 
         System.out.println();
         Lexer lexer = new Lexer();
-        List<Token> parserTokens = lexer.process(myLang);
+        List<Token> tokenList = lexer.process(myLang);
 
         System.out.println("Lexer:");
 
-        for (Token token : parserTokens) {
+        for (Token token : tokenList) {
             System.out.println(token);
         }
 
@@ -36,21 +36,23 @@ public class Main {
         Parser parser = new Parser();
         System.out.println("Parser:");
         try {
-            String parserResult = parser.parse(parserTokens);
+            String parserResult = parser.parse(tokenList);
             System.out.println(parserResult);
             if (parserResult.equals("Syntax is OK")) {
-                ToRPN rpn = new ToRPN();
+                List<Token> rpn = ToRPN.toRPN(tokenList);
 
                 System.out.println("\nRPN out: ");
-                for (Token token: rpn.toRPN(parserTokens)){
-                    System.out.print(token.getValue()+" ");
-                }
+                for (int i = 0; i < rpn.size(); i++)
+                    System.out.printf("%-5s", i + " ");
+                System.out.println();
+                for (Token rpn_token : rpn)
+                    System.out.printf("%-5s", rpn_token.getValue() + " ");
 
                 System.out.println();
                 System.out.println();
 
                 StackMachine stackMachine = new StackMachine();
-                stackMachine.calculate(rpn.toRPN(parserTokens));
+                stackMachine.calculate(rpn);
             }
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());

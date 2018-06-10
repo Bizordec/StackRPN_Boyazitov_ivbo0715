@@ -147,6 +147,10 @@ public class Parser {
             } else
                 throw new IllegalArgumentException("Error. Variable '" +
                         next().getValue() + "' is defined for a set.");
+            if (next("WHILE")) {
+                tokens.poll();
+                while_expr();
+            }
         }
     }
 

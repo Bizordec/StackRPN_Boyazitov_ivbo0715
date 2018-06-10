@@ -5,7 +5,7 @@ public class Token {
     private String value;
     private int priority;
 
-    public Token(Lexeme lexeme, String value) {
+    Token(Lexeme lexeme, String value) {
         this.type = lexeme.getType();
         this.value = value;
         this.priority = lexeme.getPriority();
