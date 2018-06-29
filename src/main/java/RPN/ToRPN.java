@@ -44,24 +44,24 @@ public class ToRPN {
                     output.add(token);
                     break;
                 case "LPAR":
+                    operators.push(token);
+                    break;
                 case "RPAR":
+                    while (!operators.peek().getType().equals("LPAR"))
+                        output.add(operators.pop());
+                    operators.pop();
+                    break;
                 case "MULDIV":
                 case "ADDSUB":
-                case "ASSIGN":
-                    if (token.getType().equals("LPAR"))
-                        operators.push(token);
-                    else if (token.getType().equals("RPAR")) {
-                        while (!operators.peek().getType().equals("LPAR"))
-                            output.add(operators.pop());
-                        operators.pop();
-                    } else if (!operators.empty()) {
+                    if (!operators.empty()) {
                         while (token.getPriority() <= operators.peek().getPriority())
                             output.add(operators.pop());
                         operators.push(token);
-                    } else if (token.getType().equals("ASSIGN"))
-                        operators.push(new Token("NEWASSIGN", ":=", 1));
-                    else
+                    } else
                         operators.push(token);
+                    break;
+                case "ASSIGN":
+                    operators.push(new Token("NEWASSIGN", ":=", 1));
                     break;
                 case "EOL":
                     while (!operators.empty())
